@@ -24,7 +24,7 @@ contract('Oracles', async (accounts) => {
     
     // ARRANGE
     let fee = await config.flightSuretyApp.REGISTRATION_FEE.call();
-
+    
     // ACT
     for(let a=1; a<TEST_ORACLES_COUNT; a++) {      
       await config.flightSuretyApp.registerOracle({ from: accounts[a], value: fee });
@@ -56,7 +56,7 @@ contract('Oracles', async (accounts) => {
         try {
           // Submit a response...it will only be accepted if there is an Index match
           await config.flightSuretyApp.submitOracleResponse(oracleIndexes[idx], config.firstAirline, flight, timestamp, STATUS_CODE_ON_TIME, { from: accounts[a] });
-
+          console.log('\Correct ', idx, oracleIndexes[idx].toNumber(), flight, timestamp);
         }
         catch(e) {
           // Enable this when debugging
