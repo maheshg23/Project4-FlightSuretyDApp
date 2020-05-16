@@ -68,6 +68,7 @@ export default class Contract {
         //     UIHelpers.updateInsurancePayout(data);
         //     UIHelpers.updatePassengerBalance(this.passengerBalance);
         // });
+
     }
     isOperational() {
         let self = this;

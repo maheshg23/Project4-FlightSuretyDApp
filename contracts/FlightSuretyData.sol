@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity >0.5.0;
 
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
@@ -41,7 +41,7 @@ contract FlightSuretyData {
         uint256 value;
         uint status;
     }
-    mapping(bytes32 => InsuranceInfo) private insurances;
+    mapping(address => InsuranceInfo) private insurances;
     mapping(address => uint256) private passengerBalances;
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
@@ -156,6 +156,14 @@ contract FlightSuretyData {
         authorizedCallers[contractAddress] = true;
     }
 
+    function getAirlineOperatingStatus(address account) external view requireIsOperational returns(bool){
+        return airlines[account].isFunded;
+    }
+
+    function getInsuredPassenger_amount(address airline) external view requireIsOperational  returns(address, uint256){
+        return (insurances[airline].passenger,insurances[airline].value);
+    }
+
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
@@ -204,19 +212,18 @@ contract FlightSuretyData {
         return airlines[airlineAddress].needApprove;
     }
 
-
    /**
     * @dev Buy insurance for a flight
     *
     */
     function buy
-                            (address passenger, bytes32 flightKey)
+                            (address airline)
                             external
                             requireIsOperational
                             payable
     {
-        insurances[flightKey] = InsuranceInfo({
-            passenger: passenger,
+        insurances[airline] = InsuranceInfo({
+            passenger: msg.sender,
             value: msg.value,
             status: INSURANCE_STATUS_IN_PROGRESS
         });
@@ -227,34 +234,36 @@ contract FlightSuretyData {
      *  @dev Credits payouts to insurees
     */
     function creditInsurees
-                                (bytes32 flightKey
+                                (address airline,
+                                uint256 amount
                                 )
                                 external
                                 requireIsOperational
     {
-        InsuranceInfo memory insurance = insurances[flightKey];
-        if (insurance.status == INSURANCE_STATUS_IN_PROGRESS) {
-            uint256 insurancePayoutValue = getInsurancePayoutValue(flightKey);
-            uint256 balance = passengerBalances[insurance.passenger];
-            passengerBalances[insurance.passenger] = balance.add(insurancePayoutValue);
-            insurance.status = INSURANCE_STATUS_PAID;
-        }
+        InsuranceInfo memory insurance = insurances[airline];
+        // if (insurance.status == INSURANCE_STATUS_IN_PROGRESS) {
+            // uint256 insurancePayoutValue = getInsurancePayoutValue(airline);
+            // uint256 balance = passengerBalances[insurance.passenger];
+            // passengerBalances[insurance.passenger] = balance.add(insurancePayoutValue);
+            passengerBalances[insurance.passenger] = amount;
+            // insurance.status = INSURANCE_STATUS_PAID;
+        // }
     }
     /**
      *  @dev Set insurance closed status
     */
-    function closeInsurance(bytes32 flightKey) external view requireIsOperational{
-        InsuranceInfo memory insurance = insurances[flightKey];
+    function closeInsurance(address airline) external view requireIsOperational{
+        InsuranceInfo memory insurance = insurances[airline];
         if (insurance.status != INSURANCE_STATUS_UNKNOWN) {
             insurance.status = INSURANCE_STATUS_CLOSED;
         }
     }
 
-    function getInsurancePayoutValue(bytes32 flightKey) public view requireIsOperational returns(uint256){
-        InsuranceInfo memory insurance = insurances[flightKey];
-        uint256 insurancePayoutValue = insurance.value.div(2);
-        return insurancePayoutValue.add(insurance.value);
-    }
+    // function getInsurancePayoutValue(address airline) public view requireIsOperational returns(uint256){
+    //     InsuranceInfo memory insurance = insurances[airline];
+    //     uint256 insurancePayoutValue = insurance.value.div(2);
+    //     return insurancePayoutValue.add(insurance.value);
+    // }
 
     function getPassengerBalance(address passengerAddress) public view requireIsOperational returns(uint256){
         return passengerBalances[passengerAddress];
@@ -291,21 +300,24 @@ contract FlightSuretyData {
                             checkAirlineApproved(airlineAddress)
                             payable
     {
+        // require(msg.value == 10 ether,"Ether should be 10");
+        // require(!airlines[airlineAddress].isFunded, "Airline is already funded");
+
         airlines[airlineAddress].isFunded = true;
     }
 
-    function getFlightKey
-                        (
-                            address airline,
-                            string memory flight,
-                            uint256 timestamp
-                        )
-                        internal
-                        pure
-                        returns(bytes32)
-    {
-        return keccak256(abi.encodePacked(airline, flight, timestamp));
-    }
+    // function getFlightKey
+    //                     (
+    //                         address airline,
+    //                         string memory flight,
+    //                         uint256 timestamp
+    //                     )
+    //                     internal
+    //                     pure
+    //                     returns(bytes32)
+    // {
+    //     return keccak256(abi.encodePacked(airline, flight, timestamp));
+    // }
 
     function isAirline(address airlineAddress) public view requireIsOperational() returns (bool) {
         return airlines[airlineAddress].isExists;
@@ -329,6 +341,6 @@ contract FlightSuretyData {
     function getAirlinesCount() public view returns (uint256) {
         return airlinesCount;
     }
-    
+
 }
 

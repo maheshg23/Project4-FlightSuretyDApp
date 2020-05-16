@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity >0.5.0;
 
 // It's important to avoid vulnerabilities due to numeric overflow bugs
 // OpenZeppelin's SafeMath library, when used correctly, protects agains such bugs
@@ -186,7 +186,7 @@ contract FlightSuretyApp {
             passenger: msg.sender,
             value: msg.value
         });
-        dataContract.buy.value(msg.value)(msg.sender, key);
+        dataContract.buy.value(msg.value)(msg.sender);
     }
 
    /**
@@ -200,21 +200,34 @@ contract FlightSuretyApp {
                                     uint256 timestamp,
                                     uint8 statusCode
                                 )
-                                internal
+                                public
                                 requireIsOperational()
     {
         bytes32 key = getFlightKey(airline, flight, timestamp);
-
         flights[key].statusCode = statusCode;
+
+        address passenger;
+        uint256 amountPaid;
+        (passenger,amountPaid) = dataContract.getInsuredPassenger_amount(airline);
+
+
         if (statusCode == STATUS_CODE_LATE_AIRLINE) {
-            dataContract.creditInsurees(key);
-            uint256 insurancePayoutValue = dataContract.getInsurancePayoutValue(key);
-            uint256 passengerBalance = dataContract.getPassengerBalance(flights[key].passenger);
-            emit InsurancePayout(airline, flight, timestamp, insurancePayoutValue, passengerBalance);
+            uint256 insurancePayoutValue = getInsurancePayoutValue(amountPaid);
+            dataContract.creditInsurees(airline, insurancePayoutValue);
+            // uint256 insurancePayoutValue = dataContract.getInsurancePayoutValue(airline);
+            // uint256 passengerBalance = dataContract.getPassengerBalance(flights[key].passenger);
+            // emit InsurancePayout(airline, flight, timestamp, insurancePayoutValue, passengerBalance);
         } else {
-            dataContract.closeInsurance(key);
+            dataContract.closeInsurance(airline);
         }
     }
+
+    function getInsurancePayoutValue(uint256 amount) public pure requireIsOperational returns(uint256){
+        // InsuranceInfo memory insurance = insurances[airline];
+        uint256 insurancePayoutValue = amount.div(2);
+        return insurancePayoutValue.add(amount);
+    }
+
 
     function getPassengerBalance
                                 (address passengerAddress)
@@ -268,11 +281,12 @@ contract FlightSuretyApp {
         operational = mode;
     }
 
+    
 
 // region ORACLE MANAGEMENT
 
     // Incremented to add pseudo-randomness at various points
-    uint8 private nonce = 0;    
+    uint8 private nonce = 0;
 
     // Fee to be paid when registering oracle
     uint256 public constant REGISTRATION_FEE = 1 ether;
@@ -283,7 +297,7 @@ contract FlightSuretyApp {
 
     struct Oracle {
         bool isRegistered;
-        uint8[3] indexes;        
+        uint8[3] indexes;
     }
 
     // Track all registered oracles
@@ -441,3 +455,19 @@ contract FlightSuretyApp {
 // endregion
 
 }
+
+// contract FlightSuretyData {
+
+//     function registerAirline(address airline) external;
+//     function getInsuredPassenger_amount(address airline) external returns(address, uint256);
+//     function creditInsurees (address airline,uint256 amount) external;
+//     function getAirlinesCount() public view returns (uint256);
+//     function isAirline(address airlineAddress) public view returns (bool);
+//     function voteAirline(address airlineAddress, address voterAddress) external returns (bool);
+//     function fund(address airlineAddress) external payable;
+//     function buy(address airline) external payable;
+//     function closeInsurance(address airline) external view;
+//     function getPassengerBalance(address passengerAddress) public view returns(uint256);
+//     function pay(address payable passengerAddress) external payable;
+
+// }
