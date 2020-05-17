@@ -52,6 +52,6 @@ Deploy the contents of the ./dapp folder
 * [Web3Js Reference](https://github.com/ethereum/wiki/wiki/JavaScript-API)
 
 
-The rubrik tes case for the "If flight is delayed due to airline fault, passenger receives credit of 1.5X the amount they paid" is shown in the flightsurety trufle test - "Credited passenger can withdraw ether(transfer from airline to passenger". 
+The rubric test case for the "If the flight is delayed due to airline fault, the passenger receives a credit of 1.5X the amount they paid" is shown in the flight surely truffle test - "Credited passenger can withdraw ether(transfer from airline to passenger". 
 
-I am finding it difficult to replicate the same in the front end as i have little knowledge of front end coding. But the functionality is the same that has been implemented in the truffle test. I hope it will suffice. 
+I am finding it difficult to replicate the same in the front end as I have little knowledge of front end coding. But the functionality is the same that has been implemented in the truffle test. I hope it will suffice. 
