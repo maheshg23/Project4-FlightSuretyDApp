@@ -21,6 +21,8 @@ contract FlightSuretyApp {
 
     bool private operational = true;
 
+    uint public MAX_AUTO_REGISTERED_AIRLINES = 4;
+
     // Flight status codees
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
     uint8 private constant STATUS_CODE_ON_TIME = 10;
@@ -135,19 +137,45 @@ contract FlightSuretyApp {
                             canAirlineCreateOrUpdate()
                             // returns(bool success, uint256 votes)
     {
-        dataContract.registerAirline(airlineAddress);
+        bool needAprrove = dataContract.getAirlinesCount() >= MAX_AUTO_REGISTERED_AIRLINES;
+
+        dataContract.registerAirline(airlineAddress, needAprrove);
     }
+
+
+    // function voteAirline(address airlineAddress) public requireIsOperational() canAirlineCreateOrUpdate() {
+    //     bool needApproved = dataContract.voteAirline(airlineAddress, msg.sender);
+    //     emit AirlineWasVoted(airlineAddress, needApproved);
+    // }
 
 
     /**
-     * @dev Add an airline to the registration queue
+     * @dev Add vote to airline, return needApprove flag
+     *      Can only be called from FlightSuretyApp contract
      *
      */
-    function voteAirline(address airlineAddress) public requireIsOperational() canAirlineCreateOrUpdate() {
-        bool needApproved = dataContract.voteAirline(airlineAddress, msg.sender);
+    function voteAirline(address airlineAddress)
+                        external
+                        // checkAirlineExists(airlineAddress)
+                        canAirlineCreateOrUpdate()
+                        requireIsOperational()
+    {
+        require(dataContract.getAirlineIsVoted(airlineAddress,msg.sender) == false, "Airline already voted by this account");
+        //require(airlines[airlineAddress].votes.voters[voterAddress] == false, "Airline already voted by this account");
+        // airlines[airlineAddress].votes.votersCount = getAirline(airlineAddress).votes.votersCount.add(1);
+        // airlines[airlineAddress].votes.voters[msg.sender] = true;
+
+        // airlines[airlineAddress].needApprove = airlines[airlineAddress].votes.votersCount < airlines[airlineAddress].minVotes;
+        // bool needApproved = airlines[airlineAddress].needApprove;
+
+        uint votersCount = dataContract.getAirlineVotersCount(airlineAddress).add(1);
+        bool isVote = true;
+        uint minVotes = dataContract.getAirlineMinVotes(airlineAddress);
+        bool needApproved = dataContract.getAirlineVotersCount(airlineAddress) < minVotes;
+
+        dataContract.setAirlineInfo(airlineAddress, votersCount, isVote, needApproved);
         emit AirlineWasVoted(airlineAddress, needApproved);
     }
-
 
     /**
      * @dev Fund flight for insuring.
@@ -224,8 +252,8 @@ contract FlightSuretyApp {
 
     function getInsurancePayoutValue(uint256 amount) public pure requireIsOperational returns(uint256){
         // InsuranceInfo memory insurance = insurances[airline];
-        uint256 insurancePayoutValue = amount.div(2);
-        return insurancePayoutValue.add(amount);
+        uint256 insurancePayoutValue = amount.mul(3).div(2);
+        return insurancePayoutValue;
     }
 
 
@@ -281,7 +309,7 @@ contract FlightSuretyApp {
         operational = mode;
     }
 
-    
+
 
 // region ORACLE MANAGEMENT
 

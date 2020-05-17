@@ -5,7 +5,7 @@ import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 contract FlightSuretyData {
     using SafeMath for uint256;
 
-    uint public MAX_AUTO_REGISTERED_AIRLINES = 4;
+    // uint public MAX_AUTO_REGISTERED_AIRLINES = 4;
 
     uint public INSURANCE_STATUS_UNKNOWN = 0;
     uint public INSURANCE_STATUS_IN_PROGRESS = 1;
@@ -175,7 +175,8 @@ contract FlightSuretyData {
     */
     function registerAirline
                             (
-                                address airlineAddress
+                                address airlineAddress,
+                                bool approveNeeded
                             )
                             external
                             requireIsOperational
@@ -183,7 +184,7 @@ contract FlightSuretyData {
         airlines[airlineAddress] = Airline({
             isExists: true,
             registeredNumber: airlinesCount,
-            needApprove: airlinesCount >= MAX_AUTO_REGISTERED_AIRLINES,
+            needApprove: approveNeeded,
             votes: Votes(0),
             isFunded: false,
             minVotes: airlinesCount.add(1).div(2)
@@ -192,25 +193,25 @@ contract FlightSuretyData {
         airlinesCount = airlinesCount.add(1);
     }
 
-    /**
-     * @dev Add vote to airline, return needApprove flag
-     *      Can only be called from FlightSuretyApp contract
-     *
-     */
-    function voteAirline(address airlineAddress, address voterAddress)
-                        external
-                        checkAirlineExists(airlineAddress)
-                        requireIsOperational
-                        returns (bool)
-    {
-        require(airlines[airlineAddress].votes.voters[voterAddress] == false, "Airline already voted by this account");
+    // /**
+    //  * @dev Add vote to airline, return needApprove flag
+    //  *      Can only be called from FlightSuretyApp contract
+    //  *
+    //  */
+    // function voteAirline(address airlineAddress, address voterAddress)
+    //                     external
+    //                     checkAirlineExists(airlineAddress)
+    //                     requireIsOperational
+    //                     returns (bool)
+    // {
+    //     require(airlines[airlineAddress].votes.voters[voterAddress] == false, "Airline already voted by this account");
 
-        airlines[airlineAddress].votes.votersCount = airlines[airlineAddress].votes.votersCount.add(1);
-        airlines[airlineAddress].votes.voters[voterAddress] = true;
+    //     airlines[airlineAddress].votes.votersCount = airlines[airlineAddress].votes.votersCount.add(1);
+    //     airlines[airlineAddress].votes.voters[voterAddress] = true;
 
-        airlines[airlineAddress].needApprove = airlines[airlineAddress].votes.votersCount < airlines[airlineAddress].minVotes;
-        return airlines[airlineAddress].needApprove;
-    }
+    //     airlines[airlineAddress].needApprove = airlines[airlineAddress].votes.votersCount < airlines[airlineAddress].minVotes;
+    //     return airlines[airlineAddress].needApprove;
+    // }
 
    /**
     * @dev Buy insurance for a flight
@@ -338,8 +339,33 @@ contract FlightSuretyData {
             airline.minVotes
         );
     }
+
     function getAirlinesCount() public view returns (uint256) {
         return airlinesCount;
+    }
+
+    function getAirlineIsVoted(address airlineAddress, address voter) public view returns (bool) {
+        return airlines[airlineAddress].votes.voters[voter];
+    }
+
+    function getAirlineVotersCount(address airlineAddress) public view returns (uint) {
+        return airlines[airlineAddress].votes.votersCount;
+    }
+    function getAirlineMinVotes(address airlineAddress) public view returns (uint) {
+        return airlines[airlineAddress].minVotes;
+    }
+
+    function setAirlineInfo(
+                            address airlineAddress,
+                            uint votersCount,
+                            bool isVote,
+                            bool needApproved
+                            )
+                            public
+    {
+        airlines[airlineAddress].votes.votersCount = votersCount;
+        airlines[airlineAddress].votes.voters[msg.sender] = isVote;
+        airlines[airlineAddress].needApprove = needApproved;
     }
 
 }

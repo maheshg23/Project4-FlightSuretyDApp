@@ -121,6 +121,7 @@ it('(airline) can register second an Airline from airline address', async () => 
 
 });
 it('(airline) can register 5th an Airline with needApprove == true', async () => {
+    
     try {
         await config.flightSuretyApp.registerAirline(accounts[5], {from: config.firstAirline});
         await config.flightSuretyApp.registerAirline(accounts[6], {from: config.firstAirline});
@@ -128,7 +129,10 @@ it('(airline) can register 5th an Airline with needApprove == true', async () =>
     } catch (e) {
     }
     let result = await config.flightSuretyData.getAirline.call(accounts[7]);
-
+    // let result6 = await config.flightSuretyData.getAirline.call(accounts[6]);
+    // console.log("airline4 " + result6.needApprove);
+    // console.log("airline5 " + result.needApprove);
+    // assert.equal(result6.needApprove, false, "4th airline ");
     assert.equal(result.needApprove, true, "Can create airlines without multi approval");
 });
 
@@ -139,12 +143,21 @@ it('(airline) vote airlines', async () => {
     } catch (e) { console.log(e); }
     let result1 = await config.flightSuretyData.getAirline.call(airlineToVote);
     assert.equal(result1.needApprove, true, "Need more votes to be approved");
-
+    // console.log("Vote 1 " + result1.needApprove);
     try {
         await config.flightSuretyApp.voteAirline(airlineToVote, {from: accounts[5]});
     } catch (e) { console.log(e); }
     let result2 = await config.flightSuretyData.getAirline.call(airlineToVote);
-    assert.equal(result2.needApprove, false, "Must be approved");
+    assert.equal(result2.needApprove, true, "Must be approved");
+    // console.log("Vote 2 " + result2.needApprove);
+
+    // for the fifth registered airline the min votes required is 3 and when we vote the Airline the third time then the needAPprive is set to false. therefore a successful test.
+    try {
+        await config.flightSuretyApp.voteAirline(airlineToVote, {from: accounts[6]});
+    } catch (e) { console.log(e); }
+    let result3 = await config.flightSuretyData.getAirline.call(airlineToVote);
+    assert.equal(result3.needApprove, false, "Must be approved");
+    // console.log("Vote 3 " + result3.needApprove);
 });
 
 
